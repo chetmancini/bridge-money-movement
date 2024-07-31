@@ -33,16 +33,23 @@ Criteria Verification: Fund Account Service verifies if the transaction meets fu
 5. Mark transaction complete.
 6. Notification: Notification Service updates the investor and fund with the transaction status.
 
-Technical Decisions
+## Technical Decisions
 
-Caching:
-Use Redis for caching frequently accessed data such as account balances to improve performance.
-Queuing:
-Use RabbitMQ or AWS SQS to handle multiple transactions simultaneously and ensure they are processed in order. For a toy example where durability isn’t important we could just implement in Python.
-Database:
-Relational database like PostgreSQL for transactional consistency and integrity.
-Concurrency Control: 
-Use optimistic locking to handle multiple transactions and avoid race conditions.
+Caching: Use Redis for caching frequently accessed data such as account balances to improve performance.
+Queuing: For a toy example where durability isn’t important we could just implement in Python. We could leverage Redis early and eventually move to a more robust queue service.
+Database: Relational database like PostgreSQL for transactional consistency and integrity.
+Concurrency Control: Use optimistic locking to handle multiple transactions and avoid race conditions.
+
+## Phased Development
+
+### Example (this)
+
+### Early working system
+
+### Advanced system
+
+As demand and complexity grows there are a number of ways we can enhance the system.
+
 
 
 ### Advantages of Two-Step Transfer Process
@@ -55,3 +62,24 @@ Use optimistic locking to handle multiple transactions and avoid race conditions
 * Flexibility and Scalability: This approach makes it easier to handle complex business rules down the road and other criteria that might be associated with the withdrawal or the deposit process.
 
 * Auditing and Logging: Each step can be logged and audited separately, providing a clearer trail for tracing transactions.
+
+## Setup and Run
+
+Ensure core dependencies and runtime are installed locally.
+For this project we use the latest version of Python and PDM for dependency and environment management.
+
+```
+# Example on mac
+$ brew install python@3.12 pdm
+```
+
+```
+# Setup and install dependencies
+$ make setup
+
+# Run tests
+$ make tests
+
+# Run the application
+$ make run
+```

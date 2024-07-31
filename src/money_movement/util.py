@@ -1,8 +1,11 @@
-
 from enum import Enum
+import random
+import string
 from typing import Dict, Generic, List, TypeVar
+
 # Define a type variable that must be an instance of Enum
-T = TypeVar('T', bound=Enum)
+T = TypeVar("T", bound=Enum)
+
 
 class GenericStateMachine(Generic[T]):
     def __init__(self, initial_state: T, transitions: Dict[T, List[T]]):
@@ -23,7 +26,16 @@ class GenericStateMachine(Generic[T]):
             print(f"Transitioning from {self.state.name} to {new_state.name}")
             self.state = new_state
         else:
-            raise ValueError(f"Invalid transition from {self.state.name} to {new_state.name}")
+            raise ValueError(
+                f"Invalid transition from {self.state.name} to {new_state.name}"
+            )
 
     def get_state(self) -> T:
         return self.state
+
+
+def generate_random_id(length: int = 8) -> str:
+    """
+    Generate a random ID of a given length. Could expand with uuid.
+    """
+    return "".join(random.choices(string.ascii_uppercase + string.digits, k=length))

@@ -34,13 +34,15 @@ test: ## Run tests using pytest
 	@echo "Running tests with PYTHONPATH=$(PYTHONPATH)"
 	PYTHONPATH=$(PYTHONPATH) $(PDM) run pytest $(TEST_DIR)
 
-lint: ## Lint code using flake8
-	PYTHONPATH=$(PYTHONPATH) $(PDM) run ruff $(LINT_DIRS)
+lint: ## Lint code using ruff
+	PYTHONPATH=$(PYTHONPATH) $(PDM) run ruff check $(LINT_DIRS)
 
+format: ## Format code using black-formatting from ruff.
+	PYTHONPATH=$(PYTHONPATH) $(PDM) run ruff format $(LINT_DIRS)
 
 run: ## Target to run the FastAPI application
-    @echo "Running FastAPI application with PYTHONPATH=$(PYTHONPATH)"
-    $(PDM) run uvicorn bridge_money_movement.main:app --reload --host 0.0.0.0 --port 8000
+	@echo "Running FastAPI application"
+	PYTHONPATH=$(PYTHONPATH) $(PDM) run uvicorn money_movement.main:app --reload --host 0.0.0.0 --port 8000
 
 clean: ## Clean up generated files
 	rm -rf __pycache__

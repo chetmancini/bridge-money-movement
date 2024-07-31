@@ -1,5 +1,3 @@
-
-
 from fastapi import FastAPI, HTTPException
 
 from money_movement.controller import transaction_status, process_transaction
@@ -7,9 +5,12 @@ from money_movement.schemas import TransferRequest, TransferStatus
 
 app = FastAPI()
 
+
 @app.post("/transfer", response_model=TransferStatus)
 def initiate_transfer(request: TransferRequest):
-    status, message = process_transaction(request.investor_id, request.fund_id, request.amount)
+    status, message = process_transaction(
+        request.investor_id, request.fund_id, request.amount
+    )
     if status == "success":
         return TransferStatus(status=status, message=message)
     elif status == "retry":
@@ -17,6 +18,7 @@ def initiate_transfer(request: TransferRequest):
         return TransferStatus(status="failure", message=message)
     else:
         raise HTTPException(status_code=400, detail=message)
+
 
 @app.get("/transfer_status/{transfer_id}", response_model=TransferStatus)
 def check_transfer_status(transfer_id: int):

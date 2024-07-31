@@ -2,12 +2,18 @@ from sqlalchemy import Transaction
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import Session
 
-from .models import FundAccount, InvestorAccount
+from money_movement.models import FundAccount, InvestorAccount
+
 
 def process_transaction(investor_id, fund_id, amount):
     session = Session()
     try:
-        investor = session.query(InvestorAccount).filter_by(id=investor_id).with_for_update().one()
+        investor = (
+            session.query(InvestorAccount)
+            .filter_by(id=investor_id)
+            .with_for_update()
+            .one()
+        )
         fund = session.query(FundAccount).filter_by(id=fund_id).with_for_update().one()
 
         if investor.balance < amount:
