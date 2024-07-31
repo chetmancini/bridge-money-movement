@@ -1,0 +1,25 @@
+[project]
+name = "bridge-money-movement"
+version = "0.1.0"
+description = "Money Movement API for Bridge"
+authors = [
+    {name = "Chet Mancini", email = "chetmancini@gmail.com"},
+]
+dependencies = [
+    "sqlalchemy>=2.0.31",
+    "py-moneyed>=3.0",
+    "fastapi>=0.111.1",
+]
+requires-python = "==3.12.*"
+readme = "README.md"
+license = {text = "MIT"}
+
+
+[tool.pdm]
+distribution = false
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "pytest>=8.3.2",
+    "ruff>=0.5.5",
+]
