@@ -28,7 +28,7 @@ def test_withdraw_funds():
 def test_withdrawal_status():
     subject = MockInvestorAccountsService(accounts={"12345": 1000})
     withdrawal = subject.withdraw_funds("12345", Money(100, "USD"))
-    assert WithdrawalState.CREATED == subject.withdrawal_status(
+    assert WithdrawalState.IN_PROGRESS == subject.withdrawal_status(
         withdrawal_id=withdrawal.get_withdrawal_id(),
         account_id=withdrawal.get_account_id(),
     )

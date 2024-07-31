@@ -1,10 +1,9 @@
 from enum import Enum
-import random
-import string
 from typing import Dict, List
 from moneyed import Money
 
-from money_movement.util import GenericStateMachine, generate_random_id
+from money_movement.util import generate_random_id
+from money_movement.state_machine import GenericStateMachine
 
 
 class DepositState(Enum):
@@ -19,22 +18,24 @@ class Deposit(GenericStateMachine[DepositState]):
     Represents a transaction of deposit of funds into an investment firm account.
     """
 
+    transitions = {
+        DepositState.CREATED: [DepositState.IN_PROGRESS, DepositState.FAILED],
+        DepositState.IN_PROGRESS: [DepositState.COMPLETED, DepositState.FAILED],
+        DepositState.COMPLETED: [],
+        DepositState.FAILED: [],
+    }
+
     def __init__(self, deposit_id: str, account_id: str, amount: Money):
         self.deposit_id = deposit_id
         self.account_id = account_id
         self.amount = amount
-        super().__init__(
-            initial_state=DepositState.CREATED,
-            transitions={
-                DepositState.CREATED: [DepositState.IN_PROGRESS, DepositState.FAILED],
-                DepositState.IN_PROGRESS: [DepositState.COMPLETED, DepositState.FAILED],
-                DepositState.COMPLETED: [],
-                DepositState.FAILED: [],
-            },
-        )
+        super().__init__(initial_state=DepositState.CREATED)
 
     def fail(self):
         self.transition(DepositState.FAILED)
+
+    def complete(self):
+        self.transition(DepositState.COMPLETED)
 
     def get_account_id(self) -> str:
         return self.account_id
@@ -84,3 +85,13 @@ class MockFundAccountsService:
             return self.deposits[account_id][deposit_id].get_state()
         else:
             raise ValueError("Deposit not found")
+
+    def _complete_deposit(account_id: str, deposit_id: str) -> None:
+        """
+        Helper for testing"""
+        self.deposits[account_id][deposit_id].complete()
+
+    def _fail_deposit(account_id: str, deposit_id: str) -> None:
+        """
+        Helper for testing"""
+        self.deposits[account_id][deposit_id].fail()

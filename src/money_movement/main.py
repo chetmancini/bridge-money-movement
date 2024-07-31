@@ -18,6 +18,8 @@ def initiate_transfer(request: TransferRequest):
         return TransferStatus(status="failure", message=message)
     else:
         raise HTTPException(status_code=400, detail=message)
+    
+
 
 
 @app.get("/transfer_status/{transfer_id}", response_model=TransferStatus)

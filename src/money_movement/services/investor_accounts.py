@@ -2,8 +2,7 @@ from enum import Enum
 from typing import Dict, List, Tuple
 from moneyed import Money
 from money_movement.util import generate_random_id
-
-from money_movement.util import GenericStateMachine
+from money_movement.state_machine import GenericStateMachine
 
 
 class WithdrawalState(Enum):
@@ -18,25 +17,24 @@ class Withdrawal(GenericStateMachine[WithdrawalState]):
     Represents a transaction of withdrawal of funds from an investment firm account.
     """
 
+    transitions = {
+        WithdrawalState.CREATED: [
+            WithdrawalState.IN_PROGRESS,
+            WithdrawalState.FAILED,
+        ],
+        WithdrawalState.IN_PROGRESS: [
+            WithdrawalState.COMPLETED,
+            WithdrawalState.FAILED,
+        ],
+        WithdrawalState.COMPLETED: [],
+        WithdrawalState.FAILED: [],
+    }
+
     def __init__(self, withdrawal_id: str, account_id: str, amount: Money):
         self.withdrawal_id = withdrawal_id
         self.account_id = account_id
         self.amount = amount
-        super().__init__(
-            initial_state=WithdrawalState.CREATED,
-            transitions={
-                WithdrawalState.CREATED: [
-                    WithdrawalState.IN_PROGRESS,
-                    WithdrawalState.FAILED,
-                ],
-                WithdrawalState.IN_PROGRESS: [
-                    WithdrawalState.COMPLETED,
-                    WithdrawalState.FAILED,
-                ],
-                WithdrawalState.COMPLETED: [],
-                WithdrawalState.FAILED: [],
-            },
-        )
+        super().__init__(initial_state=WithdrawalState.CREATED)
 
     def fail(self):
         self.transition(WithdrawalState.FAILED)
@@ -86,6 +84,7 @@ class MockInvestorAccountsService:
         self.accounts[account_id] -= amount
         withdrawal_id = generate_random_id()
         withdrawal = Withdrawal(withdrawal_id, account_id, amount)
+        withdrawal.transition(WithdrawalState.IN_PROGRESS)
         self._transactions[withdrawal_id] = withdrawal
         return withdrawal
 

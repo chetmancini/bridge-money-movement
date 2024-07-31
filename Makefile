@@ -42,7 +42,31 @@ format: ## Format code using black-formatting from ruff.
 
 run: ## Target to run the FastAPI application
 	@echo "Running FastAPI application"
-	PYTHONPATH=$(PYTHONPATH) $(PDM) run uvicorn money_movement.main:app --reload --host 0.0.0.0 --port 8000
+	PYTHONPATH=$(PYTHONPATH) $(PDM) run celery -A bridge_money_movement.tasks worker --loglevel=info & \
+	PYTHONPATH=$(PYTHONPATH) $(PDM) run uvicorn money_movement.main:app --reload --host 0.0.0.0 --port 8000 & \
+	wait
+
+clean: ## Clean up generated files
+	rm -rf __pycache__
+	rm -rf $(TEST_DIR)/__pycache__
+	rm -rf $(SRC_DIR)/__pycache__
+
+
+# Docker targets
+docker-test:
+	docker-compose run --rm web pdm run pytest tests/
+
+docker-run:
+	docker-compose up
+
+docker-build:
+	docker-compose build
+
+docker-lint:
+	docker-compose run web pdm run ruff check $(LINT_DIRS)
+
+docker-format:
+	docker-compose run web pdm run ruff format $(LINT_DIRS)
 
 clean: ## Clean up generated files
 	rm -rf __pycache__

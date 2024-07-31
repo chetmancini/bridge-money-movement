@@ -2,52 +2,44 @@ from sqlalchemy import Transaction
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import Session
 
-from money_movement.models import FundAccount, InvestorAccount
+from money_movement.models import (
+    FundAccount,
+    InvestorAccount,
+    FundingTransaction,
+    TransactionState,
+)
+from money_movement.tasks import process_withdrawal
 
 
-def process_transaction(investor_id, fund_id, amount):
+def process_new_transaction(investor_id, fund_id, amount):
     session = Session()
     try:
-        investor = (
-            session.query(InvestorAccount)
-            .filter_by(id=investor_id)
-            .with_for_update()
-            .one()
+        investor_account: InvestorAccount = (
+            session.query(InvestorAccount).filter_by(id=investor_id).one()
         )
-        fund = session.query(FundAccount).filter_by(id=fund_id).with_for_update().one()
-
-        if investor.balance < amount:
-            raise ValueError("Insufficient funds")
-
-        if fund.seat_availability <= 0 or amount < fund.min_investment_threshold:
-            raise ValueError("Fund criteria not met")
-
-        original_investor_version = investor.version
-        original_fund_version = fund.version
-
-        investor.balance -= amount
-        fund.balance += amount
-
-        investor.version += 1
-        fund.version += 1
-
+        fund_account: FundAccount = (
+            session.query(FundAccount).filter_by(id=fund_id).one()
+        )
+        transaction = FundingTransaction(
+            investor_account=investor_account,
+            fund_account=fund_account,
+            amount=amount,
+            state=TransactionState.INITIATED,
+        )
+        session.add(transaction)
         session.commit()
-    except NoResultFound:
-        session.rollback()
-        return "failure", "Investor or Fund not found"
-    except Exception as e:
-        session.rollback()
-        # Retry mechanism in case of concurrent updates
-        if "could not serialize access due to concurrent update" in str(e):
-            return "retry", "Transaction conflict detected, retrying..."
-        return "failure", f"Transaction failed: {e}"
+        process_withdrawal.delay(transaction.id)
+    finally:
+        session.close()
 
 
-def transaction_status(transaction_id):
+def transaction_status(transaction_id) -> TransactionState:
     session = Session()
     try:
-        transaction = session.query(Transaction).filter_by(id=transaction_id).one()
-        return transaction.state
+        transaction = (
+            session.query(FundingTransaction).filter_by(id=transaction_id).one()
+        )
+        return transaction.get_state()
     except Exception as e:
         print(f"Failed to fetch transaction status: {e}")
     finally:

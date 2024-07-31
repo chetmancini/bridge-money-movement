@@ -1,6 +1,6 @@
 from enum import Enum
 import pytest
-from money_movement.util import GenericStateMachine
+from money_movement.state_machine import GenericStateMachine
 
 
 class SampleState(Enum):
@@ -10,13 +10,14 @@ class SampleState(Enum):
 
 
 class SampleStateMachine(GenericStateMachine[SampleState]):
+    transitions = {
+        SampleState.INITIATED: [SampleState.COMPLETED, SampleState.FAILED],
+        SampleState.COMPLETED: [],
+        SampleState.FAILED: [],
+    }
+
     def __init__(self, initial_state: SampleState = SampleState.INITIATED):
         self.state = initial_state
-        self.transitions = {
-            SampleState.INITIATED: [SampleState.COMPLETED, SampleState.FAILED],
-            SampleState.COMPLETED: [],
-            SampleState.FAILED: [],
-        }
 
 
 class TestGenericStateMachine:
