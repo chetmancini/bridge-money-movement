@@ -1,6 +1,8 @@
 from datetime import datetime
 from moneyed import Money
-from sqlalchemy import DECIMAL, Column, Integer, Float, String, create_engine
+from sqlalchemy import DECIMAL, Column, ForeignKey, Integer, Float, String, create_engine
+from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import mapped_column
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -28,7 +30,7 @@ class InvestorAccount(Base):
 class WithdrawalTransaction(Base):
     __tablename__ = 'withdrawal_transactions'
     id = Column(Integer, primary_key=True)
-    investor_account_id = Column(Integer)
+    investor_account_id: Mapped[int] = mapped_column(ForeignKey(InvestorAccount.id))
     amount = Column(DECIMAL)
     state = Column(String)
 

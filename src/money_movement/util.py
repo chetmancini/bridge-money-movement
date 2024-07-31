@@ -9,6 +9,12 @@ class GenericStateMachine(Generic[T]):
         self.state = initial_state
         self.transitions = transitions
 
+    def set_initial_state(self, initial_state: T):
+        if not self.state:
+            self.state = initial_state
+        else:
+            raise ValueError("Initial state already set")
+
     def can_transition(self, new_state: T) -> bool:
         return new_state in self.transitions[self.state]
 

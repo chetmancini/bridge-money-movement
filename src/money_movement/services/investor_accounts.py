@@ -2,24 +2,32 @@
 from typing import List, Tuple
 from moneyed import Money
 
-from bridge_money_movement.util import GenericStateMachine
+from money_movement.util import GenericStateMachine
 
 class WithdrawalState(Enum):
-    INITIATED = 1
-    COMPLETED = 2
-    FAILED = 3
+    CREATED = 1
+    IN_PROGRESS = 2
+    COMPLETED = 3
+    FAILED = 4
 
 
 class Withdrawal(GenericStateMachine[WithdrawalState]):
+    """
+    Represents a transaction of withdrawal of funds from an investment firm account.
+    """
     def __init__(self, account_id: str, amount: Money):
         self.account_id = account_id
         self.amount = amount
-        self.state = WithdrawalState.INITIATED
+        self.state = WithdrawalState.CREATED
         self.transitions = {
-            WithdrawalState.INITIATED: [WithdrawalState.COMPLETED, WithdrawalState.FAILED],
+            WithdrawalState.CREATED: [WithdrawalState.IN_PROGRESS, WithdrawalState.FAILED],
+            WithdrawalState.IN_PROGRESS: [WithdrawalState.COMPLETED, WithdrawalState.FAILED],
             WithdrawalState.COMPLETED: [],
             WithdrawalState.FAILED: []
         }
+    
+    def fail(self):
+        self.transition(WithdrawalState.FAILED)
 
     
 class AbstractInvestorAccountsService:

@@ -2,9 +2,8 @@
 
 from fastapi import FastAPI, HTTPException
 
-from .controller import transaction_status
-from .schemas import TransferRequest, TransferStatus
-from .transaction import process_transaction
+from money_movement.controller import transaction_status, process_transaction
+from money_movement.schemas import TransferRequest, TransferStatus
 
 app = FastAPI()
 

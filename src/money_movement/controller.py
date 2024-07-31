@@ -1,5 +1,5 @@
 from sqlalchemy import Transaction
-from sqlalchemy.exc import StaleDataError
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import Session
 
 from .models import FundAccount, InvestorAccount
@@ -26,15 +26,15 @@ def process_transaction(investor_id, fund_id, amount):
         fund.version += 1
 
         session.commit()
-    except StaleDataError:
+    except NoResultFound:
         session.rollback()
-        print("Transaction conflict detected, retrying...")
-        process_transaction(investor_id, fund_id, amount)
+        return "failure", "Investor or Fund not found"
     except Exception as e:
         session.rollback()
-        print(f"Transaction failed: {e}")
-    finally:
-        session.close()
+        # Retry mechanism in case of concurrent updates
+        if "could not serialize access due to concurrent update" in str(e):
+            return "retry", "Transaction conflict detected, retrying..."
+        return "failure", f"Transaction failed: {e}"
 
 
 def transaction_status(transaction_id):

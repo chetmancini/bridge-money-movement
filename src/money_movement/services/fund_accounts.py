@@ -5,27 +5,41 @@ import string
 from typing import Dict, List
 import moneyed
 
-from bridge_money_movement.util import GenericStateMachine
+from money_movement.util import GenericStateMachine
 
 
 class DepositState(Enum):
-    INITIATED = 1
-    COMPLETED = 2
-    FAILED = 3
+    CREATED = 1
+    IN_PROGRESS = 2
+    COMPLETED = 3
+    FAILED = 4
 
 
 class Deposit(GenericStateMachine[DepositState]):
+    """
+    Represents a transaction of deposit of funds into an investment firm account.
+    """
     def __init__(self, account_id: str, amount: moneyed.Money):
         self.account_id = account_id
         self.amount = amount
-        self.state = DepositState.INITIATED
+        self.state = DepositState.CREATED
         self.transitions = {
-            DepositState.INITIATED: [DepositState.COMPLETED, DepositState.FAILED],
+            DepositState.CREATED: [DepositState.IN_PROGRESS, DepositState.FAILED],
+            DepositState.IN_PROGRESS: [DepositState.COMPLETED, DepositState.FAILED],
             DepositState.COMPLETED: [],
             DepositState.FAILED: []
         }
+    
+    def fail(self):
+        self.transition(DepositState.FAILED)
 
 class AbstractFundAccountsService:
+    """
+    Abstract class for a service that handles depositing funds into investment firm accounts.
+    In production would wrap a third-party API or service with a standardized interface.
+    In testing allows subclassing with MockFundAccountsService to simulate depositing funds.
+    """
+    
     def __init__(self):
         pass
 
@@ -36,6 +50,9 @@ class AbstractFundAccountsService:
         pass
 
 class MockFundAccountsService:
+    """
+    Mock implementation of a service that handles depositing funds into investment firm accounts.
+    """
     def __init__(self, accounts: List[str] = []):
         self.accounts = accounts 
         self.default_currency = 'USD'

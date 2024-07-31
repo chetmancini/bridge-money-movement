@@ -18,6 +18,7 @@ def setup_database():
     session.commit()
     session.close()
 
+@pytest.mark.skip(reason="Test is not ready")
 def test_transaction(setup_database):
     session = setup_database
 

@@ -11,7 +11,7 @@ SRC_DIR := src
 LINT_DIRS := $(SRC_DIR) $(TEST_DIR)
 PROJ_NAME := money_movement
 PROJECT_ROOT := $(shell pwd)
-PYTHONPATH := $(SRC_DIR)/$(PROJ_NAME):$(TEST_DIR)
+PYTHONPATH := $(shell pwd)/$(SRC_DIR)
 
 # Targets
 .PHONY: help install test lint clean
@@ -32,10 +32,10 @@ install: ## Install project dependencies using PDM
 
 test: ## Run tests using pytest
 	@echo "Running tests with PYTHONPATH=$(PYTHONPATH)"
-	$(PDM) run pytest $(TEST_DIR)
+	PYTHONPATH=$(PYTHONPATH) $(PDM) run pytest $(TEST_DIR)
 
 lint: ## Lint code using flake8
-	$(PDM) run ruff $(LINT_DIRS)
+	PYTHONPATH=$(PYTHONPATH) $(PDM) run ruff $(LINT_DIRS)
 
 
 run: ## Target to run the FastAPI application
