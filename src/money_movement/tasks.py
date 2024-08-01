@@ -1,4 +1,5 @@
 # tasks.py
+from logging import Logger, getLogger
 from celery import Celery
 from money_movement.models import (
     FundingTransaction,
@@ -21,6 +22,8 @@ from money_movement.services.notification import (
     AbstractNotificationService,
     LoggingNotificationService,
 )
+
+logger: Logger = getLogger(__name__)
 
 app = Celery("tasks", broker="pyamqp://guest@localhost//")
 # coreate a new sqlalchemy session
@@ -52,6 +55,9 @@ def process_withdrawal(transaction_id):
         time.sleep(10)
 
         # Balance check
+        logger.log(
+            f"Checking balance for {transaction.investor_account.external_account_uid}"
+        )
         balance: Money = investor_account_service.check_balance(
             transaction.investor_account.external_account_uid
         )
@@ -96,7 +102,7 @@ def complete_withdrawal(transaction_id, withdrawal_id: str = None):
 
         time.sleep(10)
 
-        # Fake withdrawal completion
+        logger.debug(f"Completing withdrawal for {transaction_id}")
         investor_account_service._complete_withdrawal(withdrawal_id=withdrawal_id)
 
         state: WithdrawalState = investor_account_service.withdrawal_status(
@@ -130,14 +136,17 @@ def process_deposit(transaction_id):
     )
 
     try:
+        if not transaction.state == TransactionState.WITHDRAWAL_COMPLETED:
+            raise ValueError("Invalid state for deposit processing")
         # Implement deposit logic here
         # Simulate long-running task with sleep
         import time
 
+        logger.debug("Simulating task. Sleep for 10 seconds")
         time.sleep(10)
 
         # Update transaction state
-        transaction.state = TransactionState.DEPOSIT_COMPLETED
+        transaction.transition(TransactionState.DEPOSIT_PENDING)
         session.commit()
     except Exception as e:
         transaction.transition(TransactionState.FAILED)
@@ -155,6 +164,8 @@ def complete_deposit(transaction_id):
     )
 
     try:
+        if not transaction.state == TransactionState.DEPOSIT_PENDING:
+            raise ValueError("Invalid state for deposit completion")
         # Implement deposit logic here
         # Simulate long-running task with sleep
         import time
