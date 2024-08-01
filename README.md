@@ -65,6 +65,8 @@ In each state there are unique services that need to be interacted with, and uni
     * This is lower priority
 
 ## Technical Decisions and tradeoffs
+Framework:
+* For simplicity to get started went with FastAPI and Celery, but in retrospect maybe should just have used a full featured framework like Django. Django ORM can be a bit simpler. As noted in the problem, using Ruby on Rails would be a fine choice.
 
 Caching:
 * Caching not done in this example.
