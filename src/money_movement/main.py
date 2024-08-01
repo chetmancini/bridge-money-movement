@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 
-from money_movement.controller import transaction_status, process_transaction
+from money_movement.controller import process_new_transaction, transaction_status
+from money_movement.models import TransactionState
 from money_movement.schemas import TransferRequest, TransferStatus
 
 app = FastAPI()
@@ -8,7 +9,7 @@ app = FastAPI()
 
 @app.post("/transfer", response_model=TransferStatus)
 def initiate_transfer(request: TransferRequest):
-    status, message = process_transaction(
+    status, message = process_new_transaction(
         request.investor_id, request.fund_id, request.amount
     )
     if status == "success":
@@ -18,14 +19,14 @@ def initiate_transfer(request: TransferRequest):
         return TransferStatus(status="failure", message=message)
     else:
         raise HTTPException(status_code=400, detail=message)
-    
 
 
-
-@app.get("/transfer_status/{transfer_id}", response_model=TransferStatus)
+@app.get("/transfer/{transfer_id}", response_model=TransferStatus)
 def check_transfer_status(transfer_id: int):
-    status, message = transaction_status(transfer_id)
-    if status:
-        return TransferStatus(status=status, message=message)
+    state: TransactionState = transaction_status(transfer_id)
+    if state:
+        return TransferStatus(
+            status=state.value, message=f"Transaction is in state {state.value}"
+        )
     else:
         raise HTTPException(status_code=404, detail="Transfer not found")

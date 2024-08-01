@@ -1,15 +1,10 @@
 from decimal import Decimal
 from enum import Enum as PyEnum
 from datetime import UTC, datetime
+from typing import List
 from moneyed import Money
 from sqlalchemy import (
-    DECIMAL,
-    Column,
-    DateTime,
-    Enum,
     ForeignKey,
-    Integer,
-    String,
     create_engine,
 )
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base
@@ -30,7 +25,7 @@ class VersionedMixin:
 
 
 class InvestorAccount(Base, TimestampMixin):
-    __tablename__ = "investor_accounts"
+    __tablename__ = "investor_account"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     external_account_uid: Mapped[str] = mapped_column(nullable=True)
@@ -43,20 +38,48 @@ class InvestorAccount(Base, TimestampMixin):
     )
 
 
-class WithdrawalTransaction(Base):
-    __tablename__ = "withdrawal_transactions"
+class SingleTransferState(PyEnum):
+    """
+    Represents the state of a single transfer transaction."""
+
+    INITIATED = "INITIATED"
+    TRANSFER_PENDING = "PENDING"
+    TRANSFER_COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
+class SingleTransactionSM(GenericStateMachine[SingleTransferState]):
+    transitions = {
+        SingleTransferState.INITIATED: [
+            SingleTransferState.TRANSFER_PENDING,
+            SingleTransferState.FAILED,
+        ],
+        SingleTransferState.TRANSFER_PENDING: [
+            SingleTransferState.TRANSFER_COMPLETED,
+            SingleTransferState.FAILED,
+        ],
+        SingleTransferState.TRANSFER_COMPLETED: [],
+        SingleTransferState.FAILED: [],
+    }
+
+    state: Mapped[SingleTransferState] = mapped_column(
+        nullable=False, default=SingleTransferState.INITIATED
+    )
+
+
+class WithdrawalTransaction(Base, TimestampMixin, VersionedMixin, SingleTransactionSM):
+    __tablename__ = "withdrawal_transaction"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    investor_account_id: Mapped[int] = mapped_column(ForeignKey(InvestorAccount.id))
-    amount: Mapped[Decimal] = mapped_column(nullable=False)
-    state: Mapped[PyEnum] = mapped_column(nullable=False)
+    investor_account_id: Mapped[int] = mapped_column(ForeignKey("investor_account.id"))
+    investor_account: Mapped[InvestorAccount] = relationship(
+        back_populates="withdrawal_transactions"
+    )
+    funding_transactions: Mapped[List["FundingTransaction"]] = relationship(
+        back_populates="withdrawal_transaction"
+    )
 
-    funding_transactions = relationship(
-        "FundingTransaction", back_populates="withdrawal_transaction"
-    )
-    investor_account = relationship(
-        "InvestorAccount", back_populates="withdrawal_transactions"
-    )
+    amount: Mapped[Decimal] = mapped_column(nullable=False)
 
     def amount_money(self) -> Money:
         return Money(self.amount, "USD")
@@ -67,35 +90,40 @@ class FundAccount(Base, TimestampMixin):
     Represents an investment firm account that investors can deposit funds into.
     """
 
-    __tablename__ = "fund_accounts"
+    __tablename__ = "fund_account"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     external_account_uid: Mapped[str] = mapped_column(nullable=True)
     min_investment_threshold: Mapped[int] = mapped_column(nullable=True)
     seat_availability: Mapped[int] = mapped_column(nullable=True)
 
-    funding_transactions = relationship(
+    funding_transactions: Mapped[List["FundingTransaction"]] = relationship(
         "FundingTransaction", back_populates="fund_account"
     )
-    deposit_transactions = relationship(
-        "FundDepositTransaction", back_populates="fund_account"
+    deposit_transactions: Mapped[List["FundDepositTransaction"]] = relationship(
+        back_populates="fund_account"
     )
 
 
-class FundDepositTransaction(Base, TimestampMixin, VersionedMixin):
-    __tablename__ = "fund_deposit_transactions"
+class FundDepositTransaction(Base, TimestampMixin, VersionedMixin, SingleTransactionSM):
+    __tablename__ = "deposit_transaction"
     id: Mapped[int] = mapped_column(primary_key=True)
-    fund_account_id: Mapped[int] = mapped_column(ForeignKey(FundAccount.id))
-    amount: Mapped[Decimal] = mapped_column(nullable=False)
-    state: Mapped[PyEnum] = mapped_column(nullable=False)
-
-    funding_transactions = relationship(
-        "FundingTransaction", back_populates="deposit_transaction"
+    fund_account_id: Mapped[int] = mapped_column(ForeignKey("fund_account.id"))
+    fund_account: Mapped[FundAccount] = relationship(
+        back_populates="deposit_transactions"
     )
-    fund_account = relationship("FundAccount", back_populates="deposit_transactions")
+    amount: Mapped[Decimal] = mapped_column(nullable=False)
+
+    funding_transactions: Mapped[List["FundingTransaction"]] = relationship(
+        back_populates="deposit_transaction"
+    )
 
 
 class TransactionState(PyEnum):
+    """
+    Represents the state of a funding transaction from an investor to a fund account.
+    """
+
     INITIATED = "Initiated"
     WITHDRAWAL_PENDING = "Withdrawal Pending"
     WITHDRAWAL_COMPLETED = "Withdrawal Completed"
@@ -128,38 +156,36 @@ class TransactionSM(GenericStateMachine[TransactionState]):
 
 
 class FundingTransaction(Base, TimestampMixin, VersionedMixin, TransactionSM):
-    __tablename__ = "funding_transactions"
+    __tablename__ = "funding_transaction"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     investor_account_id: Mapped[int] = mapped_column(
-        ForeignKey(InvestorAccount.id), nullable=False
+        ForeignKey("investor_account.id"), nullable=False
+    )
+    investor_account: Mapped[InvestorAccount] = relationship(
+        back_populates="funding_transactions"
     )
     fund_account_id: Mapped[int] = mapped_column(
-        ForeignKey(FundAccount.id), nullable=False
+        ForeignKey("fund_account.id"), nullable=False
+    )
+    fund_account: Mapped[FundAccount] = relationship(
+        back_populates="funding_transactions"
     )
     withdrawal_transaction_id: Mapped[int] = mapped_column(
-        ForeignKey(WithdrawalTransaction.id), nullable=True
+        ForeignKey("withdrawal_transaction.id"), nullable=True
+    )
+    withdrawal_transaction: Mapped[WithdrawalTransaction] = relationship(
+        back_populates="funding_transactions"
     )
     deposit_transaction_id: Mapped[int] = mapped_column(
-        ForeignKey(FundDepositTransaction.id), nullable=True
+        ForeignKey("deposit_transaction.id"), nullable=True
+    )
+    deposit_transaction: Mapped[FundDepositTransaction] = relationship(
+        back_populates="funding_transactions"
     )
     amount: Mapped[Decimal] = mapped_column(nullable=False)
     state: Mapped[TransactionState] = mapped_column(
         default=TransactionState.INITIATED, nullable=False
-    )
-
-    investor_account = relationship(
-        "InvestorAccount", back_populates="funding_transactions"
-    )
-    fund_account = relationship(
-        "FundAccount",
-        back_populates="funding_transactions",
-    )
-    withdrawal_transaction = relationship(
-        "WithdrawalTransaction", back_populates="funding_transactions"
-    )
-    deposit_transaction = relationship(
-        "FundDepositTransaction", back_populates="funding_transactions"
     )
 
     def amount_money(self) -> Money:
