@@ -161,8 +161,6 @@ def complete_deposit(transaction_id):
 
         time.sleep(10)
 
-        fund_account_service._
-
         # Update transaction state
         transaction.transition(TransactionState.DEPOSIT_COMPLETED)
         session.commit()

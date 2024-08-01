@@ -1,3 +1,4 @@
+from decimal import Decimal
 from enum import Enum as PyEnum
 from datetime import UTC, datetime
 from moneyed import Money
@@ -20,22 +21,19 @@ Base = declarative_base()
 
 
 class TimestampMixin:
-    created = Column(DateTime, default=datetime.now(UTC))
-    modified = Column(
-        DateTime,
-        default=datetime.now(UTC),
-        onupdate=datetime.now(UTC),
-    )
+    created: Mapped[datetime] = mapped_column(nullable=False, default=datetime.now)
+    modified: Mapped[datetime] = mapped_column(nullable=False, default=datetime.now)
 
 
 class VersionedMixin:
-    version = Column(Integer, default=1)
+    version: Mapped[int] = mapped_column(nullable=False, default=1)
 
 
 class InvestorAccount(Base, TimestampMixin):
     __tablename__ = "investor_accounts"
-    id = Column(Integer, primary_key=True)
-    external_account_uid = Column(String, nullable=True)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    external_account_uid: Mapped[str] = mapped_column(nullable=True)
 
     funding_transactions = relationship(
         "FundingTransaction", back_populates="investor_account"
@@ -47,10 +45,11 @@ class InvestorAccount(Base, TimestampMixin):
 
 class WithdrawalTransaction(Base):
     __tablename__ = "withdrawal_transactions"
-    id = Column(Integer, primary_key=True)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
     investor_account_id: Mapped[int] = mapped_column(ForeignKey(InvestorAccount.id))
-    amount = Column(DECIMAL)
-    state = Column(String)
+    amount: Mapped[Decimal] = mapped_column(nullable=False)
+    state: Mapped[PyEnum] = mapped_column(nullable=False)
 
     funding_transactions = relationship(
         "FundingTransaction", back_populates="withdrawal_transaction"
@@ -69,10 +68,11 @@ class FundAccount(Base, TimestampMixin):
     """
 
     __tablename__ = "fund_accounts"
-    id = Column(Integer, primary_key=True)
-    external_account_uid = Column(String, nullable=True)
-    min_investment_threshold = Column(Integer, nullable=True)
-    seat_availability = Column(Integer, nullable=True)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    external_account_uid: Mapped[str] = mapped_column(nullable=True)
+    min_investment_threshold: Mapped[int] = mapped_column(nullable=True)
+    seat_availability: Mapped[int] = mapped_column(nullable=True)
 
     funding_transactions = relationship(
         "FundingTransaction", back_populates="fund_account"
@@ -84,10 +84,10 @@ class FundAccount(Base, TimestampMixin):
 
 class FundDepositTransaction(Base, TimestampMixin, VersionedMixin):
     __tablename__ = "fund_deposit_transactions"
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     fund_account_id: Mapped[int] = mapped_column(ForeignKey(FundAccount.id))
-    amount = Column(DECIMAL)
-    state = Column(String)
+    amount: Mapped[Decimal] = mapped_column(nullable=False)
+    state: Mapped[PyEnum] = mapped_column(nullable=False)
 
     funding_transactions = relationship(
         "FundingTransaction", back_populates="deposit_transaction"
@@ -130,7 +130,7 @@ class TransactionSM(GenericStateMachine[TransactionState]):
 class FundingTransaction(Base, TimestampMixin, VersionedMixin, TransactionSM):
     __tablename__ = "funding_transactions"
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     investor_account_id: Mapped[int] = mapped_column(
         ForeignKey(InvestorAccount.id), nullable=False
     )
@@ -143,9 +143,9 @@ class FundingTransaction(Base, TimestampMixin, VersionedMixin, TransactionSM):
     deposit_transaction_id: Mapped[int] = mapped_column(
         ForeignKey(FundDepositTransaction.id), nullable=True
     )
-    amount = Column(DECIMAL, nullable=False)
-    state = Column(
-        Enum(TransactionState), default=TransactionState.INITIATED, nullable=False
+    amount: Mapped[Decimal] = mapped_column(nullable=False)
+    state: Mapped[TransactionState] = mapped_column(
+        default=TransactionState.INITIATED, nullable=False
     )
 
     investor_account = relationship(

@@ -85,19 +85,25 @@ Concurrency Control:
 
 ## Phased Development
 
-### Example (this)
+### Minimal Example (this)
 
-
+* Working API and task system
+* Multiple transactions can be enqued and processed.
+* Database can return source of truth for current transactions
 
 ### Early working system
 All the above and:
 * Full versioning on models
 * Allocation model
+* Backend jobs could be triggered based on money arriving or withdrawals completing.
+* Admin panel
 
 ### Advanced system
 
 As demand and complexity grows there are a number of ways we can enhance the system.
 * Could become an event driven system
+* Richer rules engine and mechanism for encoding business logic
+* Various front ends
 
 
 ### Assumption: Two-Step Transfer Process
@@ -132,6 +138,7 @@ $ make tests
 $ make run
 ```
 
+Also played around with docker to run Celery and FastAPI side by side:
 ```
 $ make docker-build
 $ make docker-test

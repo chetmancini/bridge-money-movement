@@ -7,8 +7,8 @@ from money_movement.models import (
     FundingTransaction,
     InvestorAccount,
     FundAccount,
-    # WithdrawalTransaction,
-    # FundDepositTransaction,
+    WithdrawalTransaction,
+    FundDepositTransaction,
 )
 
 # Create an in-memory SQLite database for testing
